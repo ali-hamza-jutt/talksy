@@ -4,10 +4,10 @@
 :root {
   --bs-sidebar-bg: #ffffff;
   --bs-sidebar-menu-item-color: #878a92;
-  --bs-sidebar-menu-item-active-color: #fed136;
+  --bs-sidebar-menu-item-active-color: #0ea5e9;
   --bs-sidebar-menu-item-active-bg: #f7f7ff;
   --bs-sidebar-sub-bg: #f5f7fb;
-  --bs-chat-primary-bg: #fed136;
+  --bs-chat-primary-bg: #0ea5e9;
   --bs-chat-secondary-bg: #f5f7fb;
   --bs-body-bg: #f7f7ff;
   --bs-body-color: #495057;
@@ -19,8 +19,8 @@
   --bs-dark: #212529;
   --bs-dark-rgb: 33, 37, 41;
   --bs-text-muted: #7a7f9a;
-  --bs-link-color: #fed136;
-  --bs-link-hover-color: #fed136;
+  --bs-link-color: #0ea5e9;
+  --bs-link-hover-color: #0ea5e9;
   --bs-border-color: #f0eff5;
   --bs-dropdown-bg: #fff;
   --bs-dropdown-link-color: #212529;
@@ -36,7 +36,7 @@
   --bs-modal-content-border-color: #f0eff5;
   --bs-nav-tabs-link-active-color: #495057;
   --bs-nav-tabs-link-active-bg: #f7f7ff;
-  --bs-accordion-button-active-color: #eebf14;
+  --bs-accordion-button-active-color: #0284c7;
   --bs-accordion-bg: #fff;
   --bs-accordion-button-bg: #f5f7fb;
   --bs-progress-bg: #f5f7fb;
@@ -288,7 +288,7 @@
 }
 
 .waves-effect.waves-primary .waves-ripple {
-  background-color: rgba(254, 209, 54, 0.4);
+  background-color: rgba(14, 165, 233, 0.4);
 }
 
 .waves-effect.waves-success .waves-ripple {
@@ -336,7 +336,7 @@
   -webkit-box-align: center;
   -ms-flex-align: center;
   align-items: center;
-  background-color: #fed136;
+  background-color: #0ea5e9;
   color: #fff;
   display: -webkit-box;
   display: -ms-flexbox;
@@ -521,8 +521,8 @@
 .custom-radio-primary
   .custom-control-input:checked
   ~ .custom-control-label:before {
-  background-color: #fed136;
-  border-color: #fed136;
+  background-color: #0ea5e9;
+  border-color: #0ea5e9;
 }
 
 .custom-checkbox-secondary
@@ -982,11 +982,11 @@
 }
 .side-menu-nav .nav-item .nav-link.active {
   background-color: var(--bs-sidebar-menu-item-active-bg);
-  color: #fed136;
+  color: #0ea5e9;
 }
 .side-menu-nav .nav-item.show > .nav-link {
   background-color: var(--bs-sidebar-menu-item-active-bg);
-  color: #fed136;
+  color: #0ea5e9;
 }
 .side-menu-nav .profile-user {
   height: 36px;
@@ -1071,11 +1071,11 @@
   font-size: 14px;
 }
 .chat-list li.typing .chat-user-message {
-  color: #fed136;
+  color: #0ea5e9;
   font-weight: 500;
 }
 .chat-list li.typing .chat-user-message .dot {
-  background-color: #fed136;
+  background-color: #0ea5e9;
 }
 .chat-list li .unread-message {
   position: absolute;
