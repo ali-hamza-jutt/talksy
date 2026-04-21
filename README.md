@@ -70,15 +70,11 @@ Your hosting server:
 ## Architecture
 <img src="https://i.imgur.com/26s6RiC.png" alt="chatCall app Architecture">
 
-## [Visit chatCall](https://chatcall.onrender.com/)
-
 <br>
-
-<a href="https://full-stack-chatCall.vercel.app/" target="_blank"><img src="https://i.imgur.com/dHk35tJ.png" alt="chatCall app home page"> </a>
 
 ## Issues
 
-If you find any issues while installing or using the app, kindly open an [issue](https://github.com/Aklilu-Mandefro/chatCall/issues) with the tag "enhancement".
+If you find any issues while installing or using the app, kindly open an [issue](https://github.com/ali-hamza-jutt/chatCall/issues) with the tag "enhancement".
 
 **Note:** Make sure you browse through the existing issues to check if the issue already exists.<br>
 
@@ -92,6 +88,10 @@ If you find any issues while installing or using the app, kindly open an [issue]
 Any contributions you make are **greatly appreciated**.
 
 If you have a suggestion that would make this app better, please fork the repo and
-create a pull request. You can also simply open a [discussions](https://github.com/Aklilu-Mandefro/chatCall/discussions/) or an [issue](https://github.com/Aklilu-Mandefro/chatCall/issues) with the tag "enhancement".
+create a pull request. You can also simply open a [discussions](https://github.com/ali-hamza-jutt/chatCall/discussions/) or an [issue](https://github.com/ali-hamza-jutt/chatCall/issues) with the tag "enhancement".
 
 #### Please give this repo a ⭐ if you found it helpful and share it with your friends.
+
+## Developer
+
+Built with ❤️ by [Ali Hamza](https://alihamzajutt.vercel.app)
