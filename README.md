@@ -68,7 +68,7 @@ Your hosting server:
 7. Once you successfully connect with MongoDB and configure **.env**, then run `npm start`, it will run the **chatCall** app on local server on http://localhost:2000, if you use 2000 as your port No.
 
 ## Architecture
-<img src="https://i.imgur.com/26s6RiC.png" alt="chatCall app Architecture">
+<img src="public/assets/images/talksy_architecture_diagram.png" alt="chatCall app Architecture">
 
 <br>
 
