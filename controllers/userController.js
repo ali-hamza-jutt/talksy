@@ -218,7 +218,6 @@ exports.reset_password = async (req, res) => {
  * Index Page
  */
 exports.index = async (req, res) => {
-    console.log("aa", req.cookies.jwt)
     if (req.cookies.jwt == undefined) {
         return res.status(200).render('login');
     } else
