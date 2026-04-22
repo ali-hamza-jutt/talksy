@@ -1,10 +1,15 @@
+:root {
+  --bs-primary: #50a5f1;
+  --bs-primary-rgb: 80, 165, 241;
+}
+
 .fallback .chat-user-message {
-  color: #0ea5e9;
+  color: var(--bs-primary);
   font-weight: 500;
 }
 
 .fallback .chat-user-message .dot {
-  background-color: #0ea5e9;
+  background-color: var(--bs-primary);
 }
 
 .full-width {
@@ -70,7 +75,7 @@
   width: 150px;
   height: 150px;
   border-radius: 100%;
-  background: rgba(14, 165, 233, 1);
+  background: var(--bs-primary);
   -webkit-animation: loader3 1.5s linear infinite;
   animation: loader3 1.5s linear infinite;
 }
