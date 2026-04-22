@@ -3,6 +3,7 @@ const express = require('express');
 const fileUpload = require('express-fileupload');
 const dotenv = require("dotenv");
 const app = require("./auth");
+const { generateSignature, deleteFile } = require('./utils/cloudinary');
 const Msg = require("./models/messagesModel");
 const Contact = require('./models/contactModel');
 const Groups = require('./models/groupModel');
@@ -946,39 +947,35 @@ io.on("connection", (socket) => {
     notificationMutedUpdate(user_id, is_muted).then((message) => { });
   });
 
-  // Messag Image Upload
-  app.post('/fileUploads', (req, res) => {
-    if (req.files) {
-      const targetFile = req.files.file;
-      let uploadDir = path.join(__dirname, '/public/assets/images/image', req.body.fname);
-      targetFile.mv(uploadDir, (err) => {
-        if (err)
-          return res.status(500).send(err);
-        res.send('File uploaded!');
-      });
-    }
+  // Cloudinary signed upload signature
+  app.get('/api/cloudinary-signature', (req, res) => {
+    const folder = req.query.folder || 'talksy/messages';
+    res.json(generateSignature(folder));
   });
-  
+
+  // Message file upload — receives Cloudinary URL from frontend
+  app.post('/fileUploads', (req, res) => {
+    res.json({ url: req.body.url });
+  });
+
+  // Delete file from Cloudinary
   app.post('/filedelete', (req, res) => {
-    if (req.body.fn) {
-      fs.unlinkSync(path.join(__dirname, '/public/assets/images/image', req.body.fn));
+    if (req.body.publicId) {
+      deleteFile(req.body.publicId).then(() => res.json({ success: true }));
+    } else {
+      res.json({ success: false });
     }
   });
 
-  // Profile Upload
+  // Profile upload — receives Cloudinary URL from frontend
   app.post('/profileUpdate', (req, res) => {
-    if (req.files) {
-      const targetFile = req.files.file;
-      profileUpdate(req.body.user_id, targetFile.name).then((message) => { });
-      const userid = req.body.user_id;
-      const image = targetFile.name;
-      io.emit("message_update1", ({ userid, image }));
-      let uploadDir = path.join(__dirname, '/public/assets/images/users', targetFile.name);
-      targetFile.mv(uploadDir, (err) => {
-        if (err)
-          return res.status(500).send(err);
-        res.send('File uploaded!');
-      });
+    const { user_id, url } = req.body;
+    if (user_id && url) {
+      profileUpdate(user_id, url).then(() => {});
+      io.emit("message_update1", ({ userid: user_id, image: url }));
+      res.json({ url });
+    } else {
+      res.status(400).json({ error: 'Missing user_id or url' });
     }
   });
 
