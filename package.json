@@ -5,7 +5,8 @@
   "main": "app.js",
   "scripts": {
     "start": "nodemon app.js",
-    "start:prod": "NODE_ENV=production nodemon app.js"
+    "start:prod": "NODE_ENV=production nodemon app.js",
+    "start:railway": "node app.js"
   },
   "author": "Ali Hamza",
   "license": "MIT",
