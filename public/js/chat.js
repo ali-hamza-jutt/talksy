@@ -2711,7 +2711,6 @@ document.querySelector("#btnSave").addEventListener("click", (e) => {
     document.getElementById("user_edit").classList.toggle("visually-hidden");
     username = name;
     socket.emit("updateUserName", { userId, name });
-    socket.on("updateUserName", function ({ userInfo }) { });
   }
 
 });
@@ -2898,6 +2897,20 @@ socket.on("message_update1", function ({ userid, image }) {
   if (form_class == 'group_form') {
     document.getElementById(userid) ? document.getElementById(userid).querySelector('a').click() : '';
     document.getElementById(userid) ? document.getElementById(userid).querySelector('.chat-user-img').innerHTML = `<img src="assets/images/users/${image}" class="rounded-circle avatar-xs" alt=""><span class="user-status"></span>` : '';
+  }
+});
+
+socket.on("updateUserName", function ({ userId, name }) {
+  const userEl = document.getElementById(userId);
+  if (userEl) {
+    const nameEl = userEl.querySelector('.receiver_name');
+    if (nameEl) nameEl.textContent = name;
+    const h5El = userEl.querySelector('h5 a');
+    if (h5El) h5El.textContent = name;
+  }
+  if (document.getElementById('receiver_name') &&
+      document.getElementById('chat_add').getAttribute('data-id') === userId) {
+    document.getElementById('receiver_name').textContent = name;
   }
 });
 

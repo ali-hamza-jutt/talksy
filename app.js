@@ -911,7 +911,7 @@ io.on("connection", (socket) => {
   // current user name edit
   socket.on("updateUserName", function ({ userId, name }) {
     userNameUpdate(userId, name).then((userInfo) => {
-      io.emit("updateUserName", ({ userInfo }));
+      io.emit("updateUserName", ({ userId, name }));
     });
   });
 
