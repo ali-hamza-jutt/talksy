@@ -15,6 +15,7 @@ I recognized that the true power of communication technology lies in its ability
 - [MongoDB](https://www.mongodb.com/)
 - [Socket.io](https://socket.io/)
 - [Bootstrap5](https://getbootstrap.com/)
+- [Cloudinary](https://cloudinary.com/) (cloud storage for profile pictures and media files)
 - No third-party packages used for audio and video call, but a browser navigator.
 
 ## Main Features
@@ -63,9 +64,38 @@ Your hosting server:
    npm install
    ```
 
-5. Configure your MongoDB database. after configuring you will find a mongo URI just put that on your `. env` file MONGO_URI variable.
-6. Add your `CAPTCHA_SECRET`, `CAPTCHA_SITEKEY`,`JWT_SECRET`, and other additional variables you want to your `.env` file.
-7. Once you successfully connect with MongoDB and configure **.env**, then run `npm start`, it will run the **Talksy** app on local server on http://localhost:2000, if you use 2000 as your port No.
+5. Configure your MongoDB database. After configuring you will find a Mongo URI — put that in your `config.env` file as `DATABASE_LOCAL`.
+
+6. Set up Cloudinary for media/file uploads:
+   - Sign up at [cloudinary.com](https://cloudinary.com) (free tier is enough)
+   - Go to your **Dashboard** and copy your credentials
+   - Add them to `config.env`:
+     ```env
+     CLOUDINARY_CLOUD_NAME=your_cloud_name
+     CLOUDINARY_API_KEY=your_api_key
+     CLOUDINARY_API_SECRET=your_api_secret
+     ```
+
+7. Add all required environment variables to your `config.env`:
+   ```env
+   DATABASE_LOCAL=your_mongodb_uri
+   PORT=3000
+   CAPTCHA_SITEKEY=your_recaptcha_v2_site_key
+   CAPTCHA_SECRET=your_recaptcha_v2_secret_key
+   CLOUDINARY_CLOUD_NAME=your_cloud_name
+   CLOUDINARY_API_KEY=your_api_key
+   CLOUDINARY_API_SECRET=your_api_secret
+   JWT_SECRET=your_jwt_secret
+   JWT_EXPIRES_IN=90d
+   JWT_COOKIE_EXPIRES_IN=90
+   ```
+   > **Note:** For reCAPTCHA, make sure you create a **v2 "I'm not a robot" Checkbox** key at [google.com/recaptcha/admin](https://www.google.com/recaptcha/admin) and add `localhost` to the allowed domains.
+
+8. Once you successfully connect with MongoDB and configure `config.env`, run:
+   ```bash
+   npm run dev
+   ```
+   This will start the **Talksy** app on http://localhost:3000
 
 ## Architecture
 <img src="public/assets/images/talksy_architecture_diagram.png" alt="Talksy app Architecture">

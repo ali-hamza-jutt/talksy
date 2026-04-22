@@ -1,5 +1,31 @@
 const socket = io();
 
+// Upload file directly to Cloudinary using signed method
+async function uploadToCloudinary(file, folder) {
+  const sigRes = await fetch(`/api/cloudinary-signature?folder=${folder}`);
+  const { timestamp, signature, api_key, cloud_name } = await sigRes.json();
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('timestamp', timestamp);
+  formData.append('signature', signature);
+  formData.append('api_key', api_key);
+  formData.append('folder', folder);
+  const res = await fetch(`https://api.cloudinary.com/v1_1/${cloud_name}/auto/upload`, {
+    method: 'POST',
+    body: formData,
+  });
+  const data = await res.json();
+  return data.secure_url;
+}
+
+// Return full URL for both Cloudinary URLs and legacy local filenames
+function resolveUrl(src, type) {
+  if (!src) return '';
+  if (src.startsWith('http')) return src;
+  const prefix = type === 'user' ? 'assets/images/users/' : 'assets/images/image/';
+  return prefix + src;
+}
+
 // Login User Detail
 let record = JSON.parse(localStorage.getItem("currentUser"));
 if (!record) {
@@ -11,7 +37,7 @@ userId = record.data.user._id;
 let globalusername = record.data.user.name;
 userEmail = record.data.user.email;
 image = record.data.user.image != undefined ? record.data.user.image : 'default_image.jpg';
-var globalimage = record.data.user.image != undefined ? record.data.user.image : 'default_image.jpg';
+var globalimage = image;
 userNotification = record.data.user.notification;
 document.querySelector('.openincomingclass').setAttribute("id", `openincoming_${userId}`);
 document.getElementById('varecusername-input').value = userId;
@@ -330,69 +356,60 @@ messageSearch.addEventListener("keyup", function () {
 });
 
 // Create Single Message 
-messageForm.addEventListener("submit", (e) => {
+messageForm.addEventListener("submit", async (e) => {
   e.preventDefault();
   let file = document.getElementById("upload_input").files[0];
   if (webcam) {
-    file = webcam
+    file = webcam;
     webcam = null;
   }
-  var filessname = Math.floor(Math.random() * (1234 - 29999 + 1) + 29999);
-  if (file) {
-    var filesname = file.name;
-    var extName = filesname.split(".").pop();
-    var filename = filessname + '.' + extName;
-    var imgList = ["png", "jpg", "jpeg", "gif", "mp4"];
-  }
-  let formData = new FormData();
-  formData.append("file", file);
-  formData.append("fname", filename);
 
   var receiverId = document.querySelector(".user_detail h6").innerHTML;
   var messageId = document.querySelector('.message_id').value;
   var msg = inputField.value ? inputField.value : "";
   var message = msg.trim();
-  if (messageId) {
-    var editMessage = flag == '1' ? "(edited)":flag == '3'? "(Forwarded)":"";
 
+  if (messageId) {
+    var editMessage = flag == '1' ? "(edited)" : flag == '3' ? "(Forwarded)" : "";
     if (message != '') {
       socket.emit("message_update", { messageId, message, receiverId, userId, flag });
-      document.querySelector(".msg_" + messageId + " .single_message").innerHTML = message ;
+      document.querySelector(".msg_" + messageId + " .single_message").innerHTML = message;
       document.querySelector(".msg_" + messageId + " .edit-flag").innerHTML = editMessage;
       document.querySelector(".remove_value button") ? document.querySelector(".remove_value button").remove() : "";
       document.querySelector(".message_id").setAttribute("value", '');
-    }
-    else {
+    } else {
       document.querySelector(".remove_value") ? document.querySelector(".remove_value").remove() : "";
       document.querySelector(".message_id").setAttribute("value", '');
     }
-
   } else {
     if (file != undefined) {
+      const fileUrl = await uploadToCloudinary(file, 'talksy/messages');
       socket.emit("chat message", {
         message: message,
         sender_id: userId,
         receiver_id: receiverId,
-        file_upload: filename,
-        flag:flag
+        file_upload: fileUrl,
+        flag: flag
       });
       document.querySelector(".file_Upload .image_pre").remove();
-      fetch("/fileUploads", { method: "POST", body: formData });
+      fetch("/fileUploads", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: fileUrl })
+      });
     } else {
-
       if (message != '') {
         socket.emit("chat message", {
           message: message,
           sender_id: userId,
           receiver_id: receiverId,
           file_upload: "",
-          flag:flag
+          flag: flag
         });
       }
     }
     let menu = document.getElementById('users');
-    let li = document.getElementById('appendcontact');
-    li = document.getElementById(receiverId);
+    let li = document.getElementById(receiverId);
     menu.insertBefore(li, menu.firstElementChild.nextElementSibling);
   }
   inputField.value = "";
@@ -465,7 +482,7 @@ socket.on("chat message", function ({ id, message, sender_id, receiver_id, file_
       else {
         var message = file_upload;
       }
-      const receiver_Image = receiverImage ? `assets/images/users/${receiverImage}` : `assets/images/users/default_image.jpg`;
+      const receiver_Image = resolveUrl(receiverImage || 'default_image.jpg', 'user');
       requestNotificationPermissions();
       var instance = new Notification(
         receiverName, {
@@ -512,31 +529,33 @@ const addNewMessage = ({
   });
 
   var receiver_image = receiverImage
-    ? `<img src="assets/images/users/${receiverImage}" alt="">`
+    ? `<img src="${resolveUrl(receiverImage, 'user')}" alt="">`
     : `<div class="avatar-xs"><span class="avatar-title rounded-circle bg-soft-primary text-primary">${receiverName[0]}</span></div>`;
   var sender_image = image
-    ? `<img src="assets/images/users/${image}" alt="" class="user-profile-image">`
+    ? `<img src="${resolveUrl(image, 'user')}" alt="" class="user-profile-image">`
     : `<div class="avatar-xs"><span class="avatar-title rounded-circle bg-soft-primary text-primary">${username[0]}</span></div>`;
   var none = file_upload == "" ? "none" : "block";
   var none_editBtn = file_upload != "" ? "none" : "block";
 
-  var extName = file_upload.split(".").pop();
+  var isCloudinaryFile = file_upload && file_upload.startsWith('http');
+  var extName = isCloudinaryFile ? file_upload.split('/').pop().split('.').pop().split('?')[0] : file_upload.split(".").pop();
   var attachedList = ["gif", "mp4", "mp3"];
   var imgList = ["jpg", "jpeg", "png"];
   var MP4 = ["mp4"];
   
   if (imgList.includes(extName)) {
+    var fileUrl = resolveUrl(file_upload, 'message');
     var image = `<ul class="list-inline message-img  mb-0">
                   <li class="list-inline-item message-img-list me-2 ms-0">
                       <div>
-                            <a class="popup-img d-inline-block m-1" href="assets/images/image/${file_upload}" target="blank" title="${file_upload}">
-                              <img src='assets/images/image/${file_upload}' alt="${file_upload}" class="rounded border" /> 
+                            <a class="popup-img d-inline-block m-1" href="${fileUrl}" target="blank" title="${file_upload}">
+                              <img src='${fileUrl}' alt="${file_upload}" class="rounded border" />
                             </a>
                       </div>
                       <div class="message-img-link">
                           <ul class="list-inline mb-0">
                               <li class="list-inline-item">
-                                  <a href="assets/images/image/${file_upload}" download="" class="text-muted">
+                                  <a href="${fileUrl}" download="" class="text-muted">
                                       <i class="ri-download-2-line"></i>
                                   </a>
                               </li>
@@ -578,7 +597,7 @@ const addNewMessage = ({
                     <div class="ms-4 me-0">
                         <ul class="list-inline mb-0 font-size-20">
                             <li class="list-inline-item me-2 ms-0">
-                                <a href="assets/images/image/${file_upload}" class="text-muted" download="">
+                                <a href="${resolveUrl(file_upload, 'message')}" class="text-muted" download="">
                                     <i class="ri-download-2-line"></i>
                                 </a>
                             </li>
@@ -751,7 +770,7 @@ function outputUsers(users) {
     else {
       var createdAt = time.getDate() ? time.getDate() : '' + "-" + (time.getMonth() + 1 ? time.getMonth() + 1 : '') + "-" + time.getFullYear() ? time.getFullYear() : '';
     }
-    const user_img = user.userImg[0] != undefined ? `<img src="assets/images/users/${user.userImg[0]}" class="rounded-circle avatar-xs" alt="">` : `<div class="avatar-xs"><span class="avatar-title rounded-circle bg-soft-primary text-primary onchangeimg">${user.name[0]}</span></div>`;
+    const user_img = user.userImg[0] != undefined ? `<img src="${resolveUrl(user.userImg[0], 'user')}" class="rounded-circle avatar-xs" alt="">` : `<div class="avatar-xs"><span class="avatar-title rounded-circle bg-soft-primary text-primary onchangeimg">${user.name[0]}</span></div>`;
 
     const userBox = `
         <li id="${user.user_id}">
@@ -842,8 +861,8 @@ socket.on('contactInfo', ({ contacts }) => {
   contacts.forEach(contact => {
     receiver_Id = contact.user_id;
     document.querySelector('.messages__history').setAttribute('id', 's_chat_' + contact.user_id);
-    const user_img = contact.userImg[0] ? `<img src="assets/images/users/${contact.userImg[0]}" class="rounded-circle avatar-xs" alt="">` : `<div class="avatar-xs mx-auto"><span class="avatar-title rounded-circle bg-soft-primary text-primary contact_img">${contact.name[0]}</span></div>`;
-    const user_rimg = contact.userImg[0] ? `<img src="assets/images/users/${contact.userImg[0]}" class="rounded-circle avatar-md" alt="">` : `<div class="avatar-md mx-auto"><span class="avatar-title rounded-circle bg-soft-primary text-primary contact_img">${contact.name[0]}</span></div>`;
+    const user_img = contact.userImg[0] ? `<img src="${resolveUrl(contact.userImg[0], 'user')}" class="rounded-circle avatar-xs" alt="">` : `<div class="avatar-xs mx-auto"><span class="avatar-title rounded-circle bg-soft-primary text-primary contact_img">${contact.name[0]}</span></div>`;
+    const user_rimg = contact.userImg[0] ? `<img src="${resolveUrl(contact.userImg[0], 'user')}" class="rounded-circle avatar-md" alt="">` : `<div class="avatar-md mx-auto"><span class="avatar-title rounded-circle bg-soft-primary text-primary contact_img">${contact.name[0]}</span></div>`;
     const time = new Date(contact.createdAt);
     const created_at =
       time.getDate() +
@@ -873,8 +892,8 @@ socket.on('contactInfo', ({ contacts }) => {
   `;
     userChat.innerHTML = userBox;
 
-    const user_img1 = contact.userImg[0] ? `<img src="assets/images/users/${contact.userImg[0]}" class="rounded-circle avatar-lg" alt="">` : `<div class="avatar-lg mx-auto"><span class="avatar-title rounded-circle bg-soft-primary text-primary contact_img">${contact.name[0]}</span></div>`;
-    const user_img2 = contact.userImg[0] ? `<img src="assets/images/users/${contact.userImg[0]}" alt="" style="width: 500px; border-radius: 50%;">` : `<div class="mx-auto" style="width:500px; height:500px"><span class="avatar-title rounded-circle bg-soft-primary text-primary contact_img">${contact.name[0]}</span></div>`;
+    const user_img1 = contact.userImg[0] ? `<img src="${resolveUrl(contact.userImg[0], 'user')}" class="rounded-circle avatar-lg" alt="">` : `<div class="avatar-lg mx-auto"><span class="avatar-title rounded-circle bg-soft-primary text-primary contact_img">${contact.name[0]}</span></div>`;
+    const user_img2 = contact.userImg[0] ? `<img src="${resolveUrl(contact.userImg[0], 'user')}" alt="" style="width: 500px; border-radius: 50%;">` : `<div class="mx-auto" style="width:500px; height:500px"><span class="avatar-title rounded-circle bg-soft-primary text-primary contact_img">${contact.name[0]}</span></div>`;
 
     document.getElementById('callimg').innerHTML = user_img2;
     document.getElementById('vcimg').innerHTML = user_img1;
@@ -1001,22 +1020,24 @@ let adduchat = (users, receiverName) => {
     var none = user.file_upload == "" ? "none" : "block";
     var none_editBtn = user.file_upload != "" ? "none" : "block";
     var receiver_image = user.image[0]
-      ? `<a href="javascript:document.getElementById('pills-user-tab').click()"><img src="assets/images/users/${user.image[0]}" alt="" class="user-profile-image user-profile-image"></a>`
+      ? `<a href="javascript:document.getElementById('pills-user-tab').click()"><img src="${resolveUrl(user.image[0], 'user')}" alt="" class="user-profile-image user-profile-image"></a>`
       : `<div class="avatar-xs"><span class="avatar-title rounded-circle bg-soft-primary text-primary">${user.name[0][0]}</span></div>`;
-    var extName = user.file_upload != undefined ? user.file_upload.split(".").pop():'';
+    var isCloudFile = user.file_upload && user.file_upload.startsWith('http');
+    var extName = user.file_upload ? (isCloudFile ? user.file_upload.split('/').pop().split('.').pop().split('?')[0] : user.file_upload.split(".").pop()) : '';
     var attachedList = ["gif", "mp4", "mp3"];
     var imgList = ["jpg", "jpeg", "png"];
-    if (imgList.includes(extName)) {
+    if (imgList.includes(extName) || isCloudFile && !["mp4","mp3","gif"].includes(extName)) {
+      var histFileUrl = resolveUrl(user.file_upload, 'message');
       var image = `<ul class="list-inline message-img  mb-0">
                         <li class="list-inline-item message-img-list me-2 ms-0">
                             <div>
-                                <a class="popup-img d-inline-block m-1" href="assets/images/image/${user.file_upload}" target="blank" title="${user.file_upload}">
-                                <img src='assets/images/image/${user.file_upload}' alt="${user.file_upload}" class="rounded border" /></a>
+                                <a class="popup-img d-inline-block m-1" href="${histFileUrl}" target="blank" title="${user.file_upload}">
+                                <img src='${histFileUrl}' alt="${user.file_upload}" class="rounded border" /></a>
                             </div>
                             <div class="message-img-link">
                                 <ul class="list-inline mb-0">
                                     <li class="list-inline-item">
-                                        <a href="assets/images/image/${user.file_upload}" download="" class="text-muted">
+                                        <a href="${histFileUrl}" download="" class="text-muted">
                                             <i class="ri-download-2-line"></i>
                                         </a>
                                     </li>
@@ -1024,16 +1045,16 @@ let adduchat = (users, receiverName) => {
                             </div>
                         </li>
                     </ul>`;
-    } 
+    }
     else if(attachedList.includes(extName)) {
       if ("mp4".includes(extName)) {
         var icon = `<i class="ri-video-line"></i>`;
       }
-  
+
       if ("mp3".includes(extName)) {
         var icon = `<i class="ri-music-line"></i>`;
       }
-  
+
       if ("gif".includes(extName)) {
         var icon = `<i class="ri-file-text-fill"></i>`;
       }
@@ -1052,7 +1073,7 @@ let adduchat = (users, receiverName) => {
                             <div class="ms-4 me-0">
                                 <ul class="list-inline mb-0 font-size-20">
                                     <li class="list-inline-item me-2 ms-0">
-                                        <a href="assets/images/image/${user.file_upload}" class="text-muted" download="">
+                                        <a href="${resolveUrl(user.file_upload, 'message')}" class="text-muted" download="">
                                             <i class="ri-download-2-line"></i>
                                         </a>
                                     </li>
@@ -1231,7 +1252,7 @@ inputField.addEventListener("keyup", () => {
 });
 socket.on("typing", function (data) {
   const { isTyping, nick, Image } = data;
-  var sender_image = Image ? `<img src="assets/images/users/${Image}" alt="">` : `<div class="avatar-xs"><span class="avatar-title rounded-circle bg-soft-primary text-primary">${nick[0]}</span></div>`;
+  var sender_image = Image ? `<img src="${resolveUrl(Image, 'user')}" alt="">` : `<div class="avatar-xs"><span class="avatar-title rounded-circle bg-soft-primary text-primary">${nick[0]}</span></div>`;
   if (document.querySelector('.callback') != null) {
     const callback_remove = document.querySelectorAll('.callback');
     Array.from(callback_remove).forEach((element, index) => {
@@ -1303,7 +1324,7 @@ socket.on("typing", function (data) {
 
 socket.on("group_typing", function (data) {
   const { isTyping, nick, Image } = data;
-  var sender_image = Image ? `<img src="assets/images/users/${Image}" alt="">` : `<div class="avatar-xs"><span class="avatar-title rounded-circle bg-soft-primary text-primary">${nick[0]}</span></div>`;
+  var sender_image = Image ? `<img src="${resolveUrl(Image, 'user')}" alt="">` : `<div class="avatar-xs"><span class="avatar-title rounded-circle bg-soft-primary text-primary">${nick[0]}</span></div>`;
   if (document.getElementById('g_chat_' + data.receiverId) != null) {
     if (document.querySelector('.callback') != null) {
       document.querySelector('.callback').remove();
@@ -1689,10 +1710,10 @@ const addGroupMessage = ({
   var none = file_upload == "" ? "none" : "block";
   var none_editBtn = file_upload != "" ? "none" : "block";
   var receiver_image = receiverImage
-    ? `<img src="assets/images/users/${receiverImage}" alt="">`
+    ? `<img src="${resolveUrl(receiverImage, 'user')}" alt="">`
     : `<div class="avatar-xs"><span class="avatar-title rounded-circle bg-soft-primary text-primary">${receiverName[0]}</span></div>`;
   var sender_image = image
-    ? `<img src="assets/images/users/${image}" alt="">`
+    ? `<img src="${resolveUrl(image, 'user')}" alt="">`
     : `<div class="avatar-xs"><span class="avatar-title rounded-circle bg-soft-primary text-primary">${username[0]}</span></div>`;
 
   var extName = file_upload.split(".").pop();
@@ -2211,7 +2232,7 @@ let addgchat = groups => {
       time.getHours() +
       ":" +
       time.getMinutes();
-    var receiver_image = group.image[0] ? `<img src="assets/images/users/${group.image[0]}" alt="">` : `<div class="avatar-xs"><span class="avatar-title rounded-circle bg-soft-primary text-primary">${group.name[0][0]}</span></div>`;
+    var receiver_image = group.image[0] ? `<img src="${resolveUrl(group.image[0], 'user')}" alt="">` : `<div class="avatar-xs"><span class="avatar-title rounded-circle bg-soft-primary text-primary">${group.name[0][0]}</span></div>`;
     var extName = group.file_upload.split(".").pop();
     var attachedList = ["gif", "mp4", "mp3"];
     var imgList = ["jpg", "jpeg", "png"];
@@ -2560,7 +2581,7 @@ socket.on("currentUser", function ({ userInfo }) {
 
   Array.from(preview).forEach((element, index) => {
     var profile_img = userInfo.image ? userInfo.image : "default_image.jpg";
-    element.src = `assets/images/users/${profile_img}`;
+    element.src = resolveUrl(profile_img, 'user');
   });
   Array.from(userName).forEach((element, index) => {
     element.innerHTML = userInfo.name;
@@ -2845,58 +2866,53 @@ socket.on("updateGroupName", function ({ groupId, name }) {
 });
 
 // Profile Image Update
-document.querySelector("#profile-img-file-input").addEventListener("change", function () {
+document.querySelector("#profile-img-file-input").addEventListener("change", async function () {
   var preview = document.querySelectorAll(".user-profile-image");
   var file = document.querySelector(".profile-img-file-input").files[0];
-  var filename = file.name;
-  var extName = filename.split(".").pop();
+  var extName = file.name.split(".").pop();
   var imgList = ["png", "jpg", "jpeg"];
 
   if (!imgList.includes(extName)) {
     toastr.error(`Invalid Image`, "Error");
-  } else {
-    var reader = new FileReader();
-    reader.addEventListener(
-      "load",
-      function () {
-        Array.from(preview).forEach((element, index) => {
-          element.src = reader.result;
-        });
-
-        var receiverId = document.querySelector(".user_detail h6") ? document.querySelector(".user_detail h6").innerHTML : '';
-        if (document.getElementById('s_chat_' + receiverId) != null) {
-          var sender_img = document.querySelectorAll('.right .chat-avatar');
-          Array.from(sender_img).forEach((element, index) => {
-            element.innerHTML = `<img src="assets/images/users/${image}" class="rounded-circle avatar-xs" alt="">`;
-          });
-        }
-      },
-      false
-    );
-    if (file) {
-      let formData = new FormData();
-      formData.append("file", file);
-      formData.append("user_id", userId);
-      fetch("/profileUpdate", { method: "POST", body: formData });
-      reader.readAsDataURL(file);
-      data = JSON.parse(localStorage.getItem("currentUser"));
-      isvalue = Object.assign(data.data.user, { image: formData.get('file').name });
-      localStorage.setItem("currentUser", JSON.stringify(data));
-      image = filename;
-      setimg(image);
-    }
+    return;
   }
+
+  const cloudUrl = await uploadToCloudinary(file, 'talksy/profiles');
+
+  Array.from(preview).forEach((element) => {
+    element.src = cloudUrl;
+  });
+
+  var receiverId = document.querySelector(".user_detail h6") ? document.querySelector(".user_detail h6").innerHTML : '';
+  if (document.getElementById('s_chat_' + receiverId) != null) {
+    var sender_img = document.querySelectorAll('.right .chat-avatar');
+    Array.from(sender_img).forEach((element) => {
+      element.innerHTML = `<img src="${cloudUrl}" class="rounded-circle avatar-xs" alt="">`;
+    });
+  }
+
+  fetch("/profileUpdate", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ user_id: userId, url: cloudUrl })
+  });
+
+  data = JSON.parse(localStorage.getItem("currentUser"));
+  isvalue = Object.assign(data.data.user, { image: cloudUrl });
+  localStorage.setItem("currentUser", JSON.stringify(data));
+  image = cloudUrl;
+  setimg(cloudUrl);
 });
 
 socket.on("message_update1", function ({ userid, image }) {
   var form_class = document.getElementById("chat_add").getAttribute("class");
   if (form_class == 'message_form') {
     document.getElementById(userid) ? document.getElementById(userid).querySelector('a').click() : '';
-    document.getElementById(userid) ? document.getElementById(userid).querySelector('.chat-user-img').innerHTML = `<img src="assets/images/users/${image}" class="rounded-circle avatar-xs" alt=""><span class="user-status"></span>` : '';
+    document.getElementById(userid) ? document.getElementById(userid).querySelector('.chat-user-img').innerHTML = `<img src="${resolveUrl(image, 'user')}" class="rounded-circle avatar-xs" alt=""><span class="user-status"></span>` : '';
   }
   if (form_class == 'group_form') {
     document.getElementById(userid) ? document.getElementById(userid).querySelector('a').click() : '';
-    document.getElementById(userid) ? document.getElementById(userid).querySelector('.chat-user-img').innerHTML = `<img src="assets/images/users/${image}" class="rounded-circle avatar-xs" alt=""><span class="user-status"></span>` : '';
+    document.getElementById(userid) ? document.getElementById(userid).querySelector('.chat-user-img').innerHTML = `<img src="${resolveUrl(image, 'user')}" class="rounded-circle avatar-xs" alt=""><span class="user-status"></span>` : '';
   }
 });
 
@@ -3079,10 +3095,10 @@ socket.on('cutpeeranswer', () => {
 socket.on("ringcalling", (uid, icid, name, image, ctype) => {
   if (!isactive) {
     cutingphone = false
-    const user_img1 = `<img src="assets/images/users/${image}" class="avatar-title rounded-circle bg-soft-primary text-primary" alt="">`;
+    const user_img1 = `<img src="${resolveUrl(image, 'user')}" class="avatar-title rounded-circle bg-soft-primary text-primary" alt="">`;
     document.getElementById(`incomingimg`).innerHTML = user_img1;
-    document.getElementById('callimg').innerHTML = `<img src="assets/images/users/${image}" alt="" style="width: 500px; border-radius: 50%;">`;
-    document.getElementById('headerimg').setAttribute('src', `assets/images/users/${image}`);
+    document.getElementById('callimg').innerHTML = `<img src="${resolveUrl(image, 'user')}" alt="" style="width: 500px; border-radius: 50%;">`;
+    document.getElementById('headerimg').setAttribute('src', resolveUrl(image, 'user'));
     document.getElementById(`icvid`).innerHTML = icid;
     document.getElementById(`sameid`).innerHTML = icid;
     document.getElementById(`icmname`).innerHTML = name;
@@ -3102,7 +3118,7 @@ socket.on("ringcalling", (uid, icid, name, image, ctype) => {
         var instance = new Notification(
           name, {
           body: `Incoming ${ctype} Call`,
-          icon: `assets/images/users/${image}`
+          icon: resolveUrl(image, 'user')
         });
         document.getElementById(`openincoming_${uid}`).click();
       }
