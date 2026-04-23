@@ -99,6 +99,11 @@ const PORT = process.env.PORT || 3000;
 http.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 app.use(express.static(__dirname + "/public"));
 
+// Serve React build in production
+if (process.env.NODE_ENV === 'production') {
+  app.use(express.static(path.join(__dirname, 'client/dist')));
+}
+
 const activeUsers = new Set();
 
 // **************** * / video call functionality ************************
@@ -994,8 +999,12 @@ io.on("connection", (socket) => {
     delete users[socket.id];
   });
 
-  app.all('*', (req, res, next) => {
-    res.status(404).render('404');
+  app.all('*', (req, res) => {
+    if (process.env.NODE_ENV === 'production') {
+      res.sendFile(path.join(__dirname, 'client/dist', 'index.html'));
+    } else {
+      res.status(404).render('404');
+    }
   });
 
 });

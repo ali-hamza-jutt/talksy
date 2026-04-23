@@ -3,10 +3,16 @@ const express = require('express');
 const cookieParser = require('cookie-parser');
 const upload = require('express-fileupload');
 const userRouter = require('./routes/userRouters');
+const cors = require('cors');
 
 const app = express();
 app.use(upload());
 app.use(express.static('images'));
+
+app.use(cors({
+  origin: ['http://localhost:5173', 'http://localhost:3000'],
+  credentials: true,
+}));
 
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));

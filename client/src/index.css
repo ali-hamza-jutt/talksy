@@ -1,0 +1,55 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body, #root { height: 100%; width: 100%; }
+  body { font-family: 'Inter', system-ui, sans-serif; }
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #a6b0cf55; border-radius: 4px; }
+}
+
+@layer components {
+  .auth-card {
+    @apply w-full max-w-md bg-light-card dark:bg-dark-card rounded-2xl shadow-xl p-8;
+  }
+  .input-field {
+    @apply w-full px-4 py-2.5 rounded-lg border border-light-border dark:border-dark-border
+           bg-light-input dark:bg-dark-input text-light-text dark:text-dark-text
+           placeholder-light-muted dark:placeholder-dark-muted
+           focus:outline-none focus:ring-2 focus:ring-primary text-sm transition;
+  }
+  .btn-primary {
+    @apply w-full py-2.5 rounded-lg bg-primary hover:bg-primary-hover text-white
+           font-semibold text-sm transition-colors disabled:opacity-60 disabled:cursor-not-allowed;
+  }
+  .panel-heading {
+    @apply text-lg font-semibold text-light-text dark:text-dark-text;
+  }
+  .sidebar-icon {
+    @apply flex items-center justify-center w-10 h-10 rounded-xl text-light-muted dark:text-dark-muted
+           hover:bg-primary/10 hover:text-primary cursor-pointer transition-colors;
+  }
+  .sidebar-icon-active {
+    @apply bg-primary/15 text-primary;
+  }
+  .chat-item {
+    @apply flex items-center gap-3 p-3 rounded-xl cursor-pointer
+           hover:bg-light-border/60 dark:hover:bg-dark-border/60 transition-colors;
+  }
+  .chat-item-active {
+    @apply bg-primary/10;
+  }
+  .msg-bubble-out {
+    @apply bg-primary text-white rounded-2xl rounded-br-sm px-4 py-2 max-w-xs lg:max-w-sm text-sm;
+  }
+  .msg-bubble-in {
+    @apply bg-light-card dark:bg-dark-card text-light-text dark:text-dark-text
+           rounded-2xl rounded-bl-sm px-4 py-2 max-w-xs lg:max-w-sm text-sm
+           border border-light-border dark:border-dark-border;
+  }
+}
