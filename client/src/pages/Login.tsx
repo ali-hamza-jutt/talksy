@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { Mail, Lock } from 'lucide-react';
 import toast from 'react-hot-toast';
+import ReCAPTCHA from 'react-google-recaptcha';
 import AuthLayout from '@/components/auth/AuthLayout';
 import Input from '@/components/common/Input';
 import { API } from '@/constants/api';
@@ -13,15 +14,22 @@ import http from '@/services/api';
 interface FormData { email: string; password: string; }
 
 export default function Login() {
+  console.log('CAPTCHA KEY:', import.meta.env.VITE_CAPTCHA_SITEKEY);
   const navigate = useNavigate();
   const setUser = useAuthStore((s) => s.setUser);
   const [loading, setLoading] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const recaptchaRef = useRef<ReCAPTCHA>(null);
   const { register, handleSubmit, formState: { errors } } = useForm<FormData>();
 
   const onSubmit = async (data: FormData) => {
+    if (!captchaToken) {
+      toast.error('Please complete the captcha');
+      return;
+    }
     setLoading(true);
     try {
-      const res = await http.post(API.SIGNIN, data);
+      const res = await http.post(API.SIGNIN, { ...data, 'g-recaptcha-response': captchaToken });
       if (res.data.status === 'fail') { toast.error(res.data.message); return; }
       setUser(res.data.data.user);
       toast.success('Welcome back!');
@@ -30,6 +38,8 @@ export default function Login() {
       toast.error(e?.response?.data?.message || 'Login failed');
     } finally {
       setLoading(false);
+      recaptchaRef.current?.reset();
+      setCaptchaToken(null);
     }
   };
 
@@ -46,6 +56,13 @@ export default function Login() {
           icon={<Lock size={16} />} error={errors.password?.message}
           {...register('password', { required: 'Password is required' })}
         />
+        <div className="flex justify-center">
+          <ReCAPTCHA
+            ref={recaptchaRef}
+            sitekey={import.meta.env.VITE_CAPTCHA_SITEKEY}
+            onChange={setCaptchaToken}
+          />
+        </div>
         <button type="submit" disabled={loading} className="btn-primary mt-2">
           {loading ? 'Signing in…' : 'Sign in'}
         </button>

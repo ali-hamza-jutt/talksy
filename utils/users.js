@@ -302,7 +302,8 @@ async function userJoin(userId) {
 }
 
 // contact wise sender and receiver message
-async function userMessage(id, user_id, receiverId, startm) {
+async function userMessage(id, user_id, receiverId, startm = 0) {
+  startm = parseInt(startm) || 0;
   const message = await Message.aggregate([
     {
       $lookup: {
@@ -550,6 +551,7 @@ async function updateUnreadGroupUser(groupsId, contactId, unread) {
 
 // Group Message Get
 async function groupsMessage(id, startm = 0) {
+  startm = parseInt(startm) || 0;
   const groupMessage = await groupMsg.aggregate([
     {
       $lookup: {

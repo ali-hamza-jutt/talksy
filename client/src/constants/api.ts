@@ -11,4 +11,4 @@ export const API = {
   FILE_DELETE:       '/filedelete',
 } as const;
 
-export const SOCKET_URL = import.meta.env.DEV ? 'http://localhost:3000' : window.location.origin;
+export const SOCKET_URL = window.location.origin;

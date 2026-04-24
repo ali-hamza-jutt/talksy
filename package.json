@@ -6,6 +6,8 @@
   "scripts": {
     "start": "node app.js",
     "dev": "nodemon app.js",
+    "dev:client": "npm --prefix client run dev",
+    "dev:all": "concurrently -n server,client -c cyan,magenta \"npm run dev\" \"npm run dev:client\"",
     "start:prod": "NODE_ENV=production node app.js"
   },
   "author": "Ali Hamza",
@@ -35,6 +37,7 @@
     "node": ">=18.0.0"
   },
   "devDependencies": {
-    "@types/cors": "^2.8.19"
+    "@types/cors": "^2.8.19",
+    "concurrently": "^8.2.2"
   }
 }
