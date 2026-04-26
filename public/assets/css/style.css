@@ -267,3 +267,9 @@ button {
 .chat-list .chat-user-message i {
   font-size: 0.95rem;
 }
+
+.receiver_status {
+  color: #06d6a0 !important;
+  font-size: 12px;
+  line-height: 1.1;
+}

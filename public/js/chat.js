@@ -112,6 +112,11 @@ function fileValidation() {
 
   // Allow all file types; keep a sensible upload limit.
   var maxSizeInBytes = 25 * 1024 * 1024;
+  const receiverStatus = document.querySelector('.receiver_status');
+  if (!receiverStatus) return;
+
+  receiverStatus.innerHTML = isOnline ? 'Online' : '';
+  receiverStatus.classList.toggle('text-success', isOnline);
   var fileSize = file.size;
   if (fileSize > maxSizeInBytes) {
     toastr.error(`Please select file less than 25MB`, "Error");
@@ -770,6 +775,7 @@ const addNewMessage = ({
 // User Id Wise contact Get
 var isMessages;
 var listUsers;
+var user_arr = [];
 socket.emit("userData", { userId });
 
 socket.on("roomUsers", ({ users }) => {
@@ -810,13 +816,14 @@ function outputUsers(users) {
     }
     const user_img = user.userImg[0] != undefined ? `<img src="${resolveUrl(user.userImg[0], 'user')}" class="rounded-circle avatar-sm last-chat-avatar" alt="">` : `<div class="avatar-sm last-chat-avatar"><span class="avatar-title rounded-circle bg-soft-primary text-primary onchangeimg">${user.name[0]}</span></div>`;
 
+    const isOnline = user_arr.includes(user.user_id);
     const userBox = `
         <li id="${user.user_id}">
             <a href="javascript:void(0);" onclick="singleChat('${user.user_id}')">
                 <div class="d-flex">                            
                     <div class="chat-user-img align-self-center me-3 ms-0">
                         ${user_img}
-                        <span class="user-status"></span>
+              <span class="user-status ${isOnline ? 'online' : ''}"></span>
                     </div>
                     <div class="flex-grow-1 overflow-hidden">
                         <h5 class="text-truncate font-size-15 mb-1">${user.name}</h5>
@@ -922,8 +929,9 @@ socket.on('contactInfo', ({ contacts }) => {
       ${user_img}
     </div>
     <div class="flex-grow-1 overflow-hidden">
-      <h5 class="font-size-14 mb-0 text-truncate message_typing"><a href="javascript: void(0);" class="text-reset user-profile-show receiver_name" onclick="profile_show(this.id)">${contact.name}</a><i class="ri-record-circle-fill font-size-10 d-inline-block ms-1 user_status"></i>
+      <h5 class="font-size-14 mb-0 text-truncate message_typing"><a href="javascript: void(0);" class="text-reset user-profile-show receiver_name" onclick="profile_show(this.id)">${contact.name}</a>
       </h5>
+      <div class="receiver_status text-success" style="font-size:12px; line-height:1.1;"></div>
       <span class="chat_typing_${contact.user_id}"></span>
       <h6 style="display:none">${contact.user_id}</h6>
     </div>
@@ -1006,11 +1014,7 @@ socket.on('contactInfo', ({ contacts }) => {
 });
 socket.on('onlineUser', ({ online }) => {
   setTimeout(function () {
-    if (document.querySelector('.user_status')) {
-      online == 1 ? document.querySelector('.user_status').classList.add('text-success') : '';
-    }
-    var receiver_status = online == 1 ? `<i class="ri-record-circle-fill font-size-10 text-success d-inline-block ms-1"></i> Online` : '<i class="ri-record-circle-fill font-size-10 text-secondary d-inline-block ms-1"></i> Offline';
-    document.querySelector('.receiver_status').innerHTML = receiver_status;
+    setReceiverStatus(online == 1);
   }, 550);
 });
 
@@ -2988,26 +2992,33 @@ function notification_muted_switch(src) {
 socket.emit("new-user-joined", userId, username);
 socket.on("user-connected", (socket_id, socket_name) => {
   document.getElementById(socket_id) ? document.getElementById(socket_id).querySelector('.chat-user-img').classList.add("online") : '';
-  if (document.getElementById('s_chat_' + socket_id) != null) {
-    document.querySelector('.user_status').classList.add('text-success');
-    document.querySelector('.receiver_status').innerHTML = `<i class="ri-record-circle-fill font-size-10 text-success d-inline-block ms-1"></i> Online`;
+  if (receiver_Id && receiver_Id === socket_id) {
+    setReceiverStatus(true);
   }
 });
 
 // User Disconnected
 socket.on("user-disconnected", (socket_id) => {
   document.getElementById(socket_id) ? document.getElementById(socket_id).querySelector('.chat-user-img').classList.remove("online") : '';
-  document.querySelector('.user_status') ? document.querySelector('.user_status').classList.remove('text-success') : '';
-  document.querySelector('.receiver_status').innerHTML = `<i class="ri-record-circle-fill font-size-10 text-secondary d-inline-block ms-1"></i> Offline`;
+  if (receiver_Id && receiver_Id === socket_id) {
+    setReceiverStatus(false);
+  }
 });
 
 // Online User List
 socket.on("user-list", (users) => {
-  user_arr = Object.values(users ? users : '');
-  user_arr.pop(userId);
-  for (i = 0; i < user_arr.length; i++) {
-    // document.getElementById(user_arr[i]) ? document.getElementById(user_arr[i]).querySelector(" .chat-user-img").classList.add("online") : '';
-  }
+  user_arr = Object.values(users ? users : {});
+  user_arr = user_arr.filter((id) => id && id !== userId);
+
+  const contactNodes = document.querySelectorAll('.chat-list li[id] .chat-user-img');
+  Array.from(contactNodes).forEach((node) => {
+    const parentId = node.closest('li') ? node.closest('li').id : '';
+    if (parentId && user_arr.includes(parentId)) {
+      node.classList.add('online');
+    } else {
+      node.classList.remove('online');
+    }
+  });
 });
 
 //------------------------SINGLE USER VIDEO/AUDIO CALL --------------------------------------------//
