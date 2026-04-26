@@ -246,3 +246,24 @@ button {
 .chat-conversation .conversation-list .ctext-wrap-content:has(.attached-file):before {
   border-color: transparent !important;
 }
+
+.chat-list .chat-user-img img.last-chat-avatar {
+  width: 3.35rem;
+  height: 3.35rem;
+  object-fit: cover;
+}
+
+.chat-list .chat-user-img .last-chat-avatar {
+  width: 3.35rem;
+  height: 3.35rem;
+}
+
+.chat-list .chat-user-img .last-chat-avatar .avatar-title {
+  width: 100%;
+  height: 100%;
+  font-size: 1.05rem;
+}
+
+.chat-list .chat-user-message i {
+  font-size: 0.95rem;
+}

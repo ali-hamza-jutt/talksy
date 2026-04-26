@@ -26,6 +26,52 @@ function resolveUrl(src, type) {
   return prefix + src;
 }
 
+function escapeHtml(value) {
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function getFileNameFromUpload(fileUpload) {
+  if (!fileUpload) return '';
+  if (fileUpload.startsWith('http')) {
+    const cleanPath = fileUpload.split('?')[0];
+    const encodedFile = cleanPath.substring(cleanPath.lastIndexOf('/') + 1);
+    return decodeURIComponent(encodedFile || '');
+  }
+
+  const normalized = fileUpload.replace(/\\/g, '/');
+  return normalized.substring(normalized.lastIndexOf('/') + 1);
+}
+
+function getFileExtension(fileName) {
+  const parts = (fileName || '').toLowerCase().split('.');
+  return parts.length > 1 ? parts.pop() : '';
+}
+
+function formatLastMessagePreview(message, fileUpload) {
+  if (message && message.trim()) return escapeHtml(message);
+  if (!fileUpload) return '';
+
+  const fileName = getFileNameFromUpload(fileUpload);
+  const extName = getFileExtension(fileName);
+  const imageExt = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'svg'];
+  const videoExt = ['mp4', 'mov', 'm4v', 'webm', 'mkv', 'avi'];
+
+  if (imageExt.includes(extName)) {
+    return "<i class='ri-image-line align-middle me-1 ms-0'></i>Image";
+  }
+
+  if (videoExt.includes(extName)) {
+    return "<i class='ri-video-line align-middle me-1 ms-0'></i>Video";
+  }
+
+  return "<i class='ri-file-text-line align-middle me-1 ms-0'></i>" + escapeHtml(fileName);
+}
+
 // Login User Detail
 let record = JSON.parse(localStorage.getItem("currentUser"));
 if (!record) {
@@ -62,22 +108,14 @@ let flag = "0";
 function fileValidation() {
   var fileInput = document.getElementById('upload_input');
   let file = document.getElementById("upload_input").files[0];
-  var filePath = fileInput.value;
-  // Allowing file type
-  var allowedExtensions = /(\.jpg|\.mp3|\.mp4|\.jpeg|\.png|\.gif)$/i;
+  if (!file) return;
+
+  // Allow all file types; keep a sensible upload limit.
+  var maxSizeInBytes = 25 * 1024 * 1024;
   var fileSize = file.size;
-  if (!allowedExtensions.exec(filePath)) {
-    toastr.error(`Please select only valid audio,video or image file.`, "Error");
+  if (fileSize > maxSizeInBytes) {
+    toastr.error(`Please select file less than 25MB`, "Error");
     fileInput.value = '';
-  }
-  else {
-    // Image preview
-    if (fileInput.files && fileInput.files[0]) {
-      if (fileSize > 2097152) {
-        toastr.error(`pless select file less than 2MB`, "Error");
-        fileInput.value = '';
-      }
-    }
   }
 }
 function hidechat() {
@@ -439,7 +477,7 @@ socket.on("chat message", function ({ id, message, sender_id, receiver_id, file_
     var created_at = time.getDate() + "-" + (time.getMonth() + 1) + "-" + time.getFullYear();
   }
   document.getElementById(myid).querySelector('.message_time').innerHTML = created_at;
-  document.getElementById(myid).querySelector('.chat-user-message').innerHTML = message ? message : file_upload ? `<i class='ri-image-fill align-middle me-1 ms-0'></i>` + file_upload : '';
+  document.getElementById(myid).querySelector('.chat-user-message').innerHTML = formatLastMessagePreview(message, file_upload);
 
   if (sender_id === userId) {
     let menu = document.getElementById('users');
@@ -770,7 +808,7 @@ function outputUsers(users) {
     else {
       var createdAt = time.getDate() ? time.getDate() : '' + "-" + (time.getMonth() + 1 ? time.getMonth() + 1 : '') + "-" + time.getFullYear() ? time.getFullYear() : '';
     }
-    const user_img = user.userImg[0] != undefined ? `<img src="${resolveUrl(user.userImg[0], 'user')}" class="rounded-circle avatar-xs" alt="">` : `<div class="avatar-xs"><span class="avatar-title rounded-circle bg-soft-primary text-primary onchangeimg">${user.name[0]}</span></div>`;
+    const user_img = user.userImg[0] != undefined ? `<img src="${resolveUrl(user.userImg[0], 'user')}" class="rounded-circle avatar-sm last-chat-avatar" alt="">` : `<div class="avatar-sm last-chat-avatar"><span class="avatar-title rounded-circle bg-soft-primary text-primary onchangeimg">${user.name[0]}</span></div>`;
 
     const userBox = `
         <li id="${user.user_id}">
@@ -824,11 +862,11 @@ socket.on("isMessage", ({ messages }) => {
       }
 
       if (messages.sender_id != userId) {
-        document.getElementById(messages.sender_id).querySelector('.chat-user-message').innerHTML = messages.message ? messages.message : messages.file_upload ? `<i class='ri-image-fill align-middle me-1 ms-0'></i>` + messages.file_upload : '';
+        document.getElementById(messages.sender_id).querySelector('.chat-user-message').innerHTML = formatLastMessagePreview(messages.message, messages.file_upload);
         document.getElementById(messages.sender_id).querySelector('.font-size-11').innerHTML = createdAt;
       }
       else {
-        document.getElementById(messages.receiver_id).querySelector('.chat-user-message').innerHTML = messages.message ? messages.message : messages.file_upload ? `<i class='ri-image-fill align-middle me-1 ms-0'></i>` + messages.file_upload : '';
+        document.getElementById(messages.receiver_id).querySelector('.chat-user-message').innerHTML = formatLastMessagePreview(messages.message, messages.file_upload);
         document.getElementById(messages.receiver_id).querySelector('.font-size-11').innerHTML = createdAt;
       }
     }
@@ -2620,33 +2658,25 @@ document.querySelector("#upload_input").addEventListener("change", function () {
   var preview = document.querySelectorAll(".file_Upload");
   var file = document.querySelector(".upload_input").files[0];
 
-  var reader = new FileReader();
-  reader.addEventListener(
-    "load",
-    function () {
-      Array.from(preview).forEach((element, index) => {
-        var filename = file.name;
-        var extName = filename.split(".").pop();
-        var imgList = ["gif", "mp4", "mp3"];
+  if (!file) return;
 
-        if (!imgList.includes(extName)) {
-          var image = `<img src='${reader.result}' class='profile-user border border-light bg-white rounded' height="300" width=350>`;
-        } else {
-          if ('mp4'.includes(extName)) {
-            var image = `<video width="400" controls><source src="${reader.result}" id="video_here"></video>`;
-          }
-          if ('mp3'.includes(extName)) {
-            var image = `<video width="400" controls><source src="${reader.result}" id="video_here"></video>`;
-          }
-        }
-        element.innerHTML = `<div class="image_pre d-inline-block position-relative">${image}<i class="ri-close-line text-danger image-remove end-0 top-0 px-1" onclick="deleteImage(this)"></i></div>`;
-      });
-    },
-    false
-  );
-  if (file) {
-    reader.readAsDataURL(file);
+  const escapedName = escapeHtml(file.name);
+  const objectUrl = URL.createObjectURL(file);
+  let previewMarkup = '';
+
+  if (file.type.startsWith('image/')) {
+    previewMarkup = `<img src='${objectUrl}' class='profile-user border border-light bg-white rounded' height="300" width="350">`;
+  } else if (file.type.startsWith('video/')) {
+    previewMarkup = `<video width="400" controls><source src="${objectUrl}" id="video_here"></video>`;
+  } else if (file.type.startsWith('audio/')) {
+    previewMarkup = `<audio controls class="w-100"><source src="${objectUrl}"></audio>`;
+  } else {
+    previewMarkup = `<div class="border rounded p-2 bg-white text-muted"><i class="ri-file-text-line align-middle me-1"></i>${escapedName}</div>`;
   }
+
+  Array.from(preview).forEach((element) => {
+    element.innerHTML = `<div class="image_pre d-inline-block position-relative">${previewMarkup}<i class="ri-close-line text-danger image-remove end-0 top-0 px-1" onclick="deleteImage(this)"></i></div>`;
+  });
 });
 
 // Delete Upload Preview Image
@@ -2908,11 +2938,11 @@ socket.on("message_update1", function ({ userid, image }) {
   var form_class = document.getElementById("chat_add").getAttribute("class");
   if (form_class == 'message_form') {
     document.getElementById(userid) ? document.getElementById(userid).querySelector('a').click() : '';
-    document.getElementById(userid) ? document.getElementById(userid).querySelector('.chat-user-img').innerHTML = `<img src="${resolveUrl(image, 'user')}" class="rounded-circle avatar-xs" alt=""><span class="user-status"></span>` : '';
+    document.getElementById(userid) ? document.getElementById(userid).querySelector('.chat-user-img').innerHTML = `<img src="${resolveUrl(image, 'user')}" class="rounded-circle avatar-sm last-chat-avatar" alt=""><span class="user-status"></span>` : '';
   }
   if (form_class == 'group_form') {
     document.getElementById(userid) ? document.getElementById(userid).querySelector('a').click() : '';
-    document.getElementById(userid) ? document.getElementById(userid).querySelector('.chat-user-img').innerHTML = `<img src="${resolveUrl(image, 'user')}" class="rounded-circle avatar-xs" alt=""><span class="user-status"></span>` : '';
+    document.getElementById(userid) ? document.getElementById(userid).querySelector('.chat-user-img').innerHTML = `<img src="${resolveUrl(image, 'user')}" class="rounded-circle avatar-sm last-chat-avatar" alt=""><span class="user-status"></span>` : '';
   }
 });
 
