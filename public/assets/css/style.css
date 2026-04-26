@@ -234,3 +234,15 @@ button {
   width: 350px;
   height: 270px;
 }
+
+/* Keep bubble background for text only; media/files should render without blue wrapper */
+.chat-conversation .conversation-list .ctext-wrap-content:has(.message-img),
+.chat-conversation .conversation-list .ctext-wrap-content:has(.attached-file) {
+  background-color: transparent !important;
+  padding: 0;
+}
+
+.chat-conversation .conversation-list .ctext-wrap-content:has(.message-img):before,
+.chat-conversation .conversation-list .ctext-wrap-content:has(.attached-file):before {
+  border-color: transparent !important;
+}
